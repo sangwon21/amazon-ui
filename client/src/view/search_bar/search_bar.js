@@ -1,15 +1,5 @@
 import { $, $$ } from "../../util/util.js";
-import {
-    URL,
-    ARROW_UP,
-    ARROW_DOWN,
-    DIRECTION_UP,
-    DIRECTION_DOWN,
-    ENTER_KEY,
-    ONE_SCROLL_UNIT,
-    SCROLL_TOP_START,
-    SCROLL_BOTTOM_END
-} from "../../util/constants.js";
+import { URL, KEY_CODE, DIRECTION, SCROLL, CSS_CLASS } from "../../util/constants.js";
 
 import css from "./search_bar.scss";
 
@@ -22,30 +12,30 @@ class SearchBar {
 
     // 참고: https://www.zerocho.com/category/JavaScript/post/59a8e9cb15ac0000182794fa
     inputEventListener(event) {
-        const targetString = event.target.value;
+        const { target: { value } } = event;
 
         if (this.timer) {
             clearTimeout(this.timer);
         }
 
-        if (targetString === "") {
-            $(".hitlist-wrapper").style.display = "none";
+        if (value === "") {
+            $(".hitlist-wrapper").hide();
             return;
         }
 
         this.timer = setTimeout(function () {
-            fetch(URL.PROD.API_SERVER_SEARCH.ADDRESS + targetString)
+            fetch(URL.PROD.API_SERVER_SEARCH.ADDRESS + value)
                 .then(res => res.json())
-                .then(titles => this.searchList.setTargetTitle(targetString, titles));
+                .then(titles => this.searchList.setTargetTitle(value, titles));
         }.bind(this), 200);
     }
 
     isArrowKeyCode(keyCode) {
-        return keyCode === ARROW_UP || keyCode === ARROW_DOWN;
+        return keyCode === KEY_CODE.ARROW_UP || keyCode === KEY_CODE.ARROW_DOWN;
     }
 
     isSearchListArea(target) {
-        const inspectionClassList = ["hitlist-wrapper", "search-list-words", "search-list-word", "target-word", "rest-word"];
+        const inspectionClassList = Object.values(CSS_CLASS);
         return inspectionClassList.some(inspectionCandidate => target.classList.contains(inspectionCandidate));
     }
 
@@ -62,7 +52,7 @@ class SearchBar {
             this.hitList = $(".hitlist-wrapper");
         }
 
-        this.hitList.style.display = "none";
+        this.hitList.hide();
     }
 
     isHitListOn() {
@@ -70,7 +60,7 @@ class SearchBar {
             this.hitList = $(".hitlist-wrapper");
         }
 
-        return this.hitList.style.display === "block";
+        return this.hitList.show();
     }
 
 
@@ -78,13 +68,13 @@ class SearchBar {
         fromNode.classList.remove("selected-word");
 
         if (toNode === null) {
-            if (direction === DIRECTION_DOWN) {
+            if (direction === DIRECTION.DOWN) {
                 parentNode[0].classList.add("selected-word");
-                $('.hitlist-wrapper').scrollTop = SCROLL_TOP_START;
+                $('.hitlist-wrapper').setScrollTop(SCROLL.TOP_START);
                 return;
             }
             parentNode[parentNode.length - 1].classList.add("selected-word");
-            $('.hitlist-wrapper').scrollTop = SCROLL_BOTTOM_END;
+            $('.hitlist-wrapper').setScrollTop(SCROLL.BOTTOM_END);
             return;
         }
 
@@ -94,15 +84,16 @@ class SearchBar {
     scrollUpAndDown(direction) {
         const hitList = $('.hitlist-wrapper');
         const scorllDistanceFromTop = hitList.scrollTop;
-        if (direction === DIRECTION_DOWN) {
-            hitList.scrollTop = scorllDistanceFromTop + ONE_SCROLL_UNIT;
+
+        if (direction === DIRECTION.DOWN) {
+            hitList.setScrollTop(scorllDistanceFromTop + SCROLL.ONE_UNIT);
             return;
         }
-        hitList.scrollTop = scorllDistanceFromTop - ONE_SCROLL_UNIT;
+        hitList.setScrollTop(scorllDistanceFromTop - SCROLL.ONE_UNIT);
     }
 
     handleKeyMovement(arrowDirection) {
-        if (this.isHitListOn() === false) {
+        if (!this.isHitListOn()) {
             return;
         }
 
@@ -114,16 +105,16 @@ class SearchBar {
             return;
         }
 
-        if (arrowDirection === DIRECTION_DOWN) {
+        if (arrowDirection === DIRECTION.DOWN) {
             const nextTarget = selected.nextSibling;
-            this.giveSelectedWordToTarget(nextTarget, selected, liDOMS, DIRECTION_DOWN);
-            this.scrollUpAndDown(DIRECTION_DOWN);
+            this.giveSelectedWordToTarget(nextTarget, selected, liDOMS, DIRECTION.DOWN);
+            this.scrollUpAndDown(DIRECTION.DOWN);
             return;
         }
 
         const previousTarget = selected.previousSibling;
-        this.giveSelectedWordToTarget(previousTarget, selected, liDOMS, DIRECTION_UP);
-        this.scrollUpAndDown(DIRECTION_UP);
+        this.giveSelectedWordToTarget(previousTarget, selected, liDOMS, DIRECTION.UP);
+        this.scrollUpAndDown(DIRECTION.UP);
     }
 
     movedSelectedWordToInputBox() {
@@ -150,7 +141,7 @@ class SearchBar {
     keyDownEventListener(event) {
         const { keyCode } = event;
 
-        if (keyCode === ENTER_KEY) {
+        if (keyCode === KEY_CODE.ENTER_KEY) {
             this.movedSelectedWordToInputBox();
             return;
         }
@@ -159,13 +150,13 @@ class SearchBar {
             return;
         }
 
-        if (keyCode === ARROW_UP) {
-            this.handleKeyMovement(DIRECTION_UP);
+        if (keyCode === KEY_CODE.ARROW_UP) {
+            this.handleKeyMovement(DIRECTION.UP);
             return;
         }
 
-        if (keyCode === ARROW_DOWN) {
-            this.handleKeyMovement(DIRECTION_DOWN);
+        if (keyCode === KEY_CODE.ARROW_DOWN) {
+            this.handleKeyMovement(DIRECTION.DOWN);
         }
     }
 
@@ -183,24 +174,27 @@ class SearchBar {
         }
         const { target } = event;
 
-        if (target.classList.contains("search-list-words") || target.classList.contains("hitlist-wrapper")) {
+        if (target.innerHTML === "No Results Matched") {
+            return;
+        }
+
+        const targetClassList = [...target.classList];
+
+        if (targetClassList.doesElementExist("search-list-words") || targetClassList.doesElementExist("hitlist-wrapper")) {
             return;
         }
 
         const inputBox = $("#search-bar-input");
 
-        if (target.classList.contains("search-list-word")) {
-            if (target.innerHTML === "No Results Matched") {
-                return;
-            }
+        if (targetClassList.doesElementExist("search-list-word")) {
             this.handleMouseClickLiTag(inputBox, target);
         }
 
-        if (target.classList.contains("target-word")) {
+        if (targetClassList.doesElementExist("target-word")) {
             inputBox.value = target.innerHTML + target.nextSibling.innerHTML;
         }
 
-        if (target.classList.contains("rest-word")) {
+        if (targetClassList.doesElementExist("rest-word")) {
             inputBox.value = target.previousSibling.innerHTML + target.innerHTML;
         }
 

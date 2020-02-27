@@ -1,6 +1,6 @@
 import Model from "./model.js";
 import { $ } from "../../util/util.js";
-import { SCROLL_TOP_START } from "../../util/constants.js";
+import { SCROLL, CSS_CLASS } from "../../util/constants.js";
 
 class SearchList {
     constructor() {
@@ -18,26 +18,24 @@ class SearchList {
         const targetLength = this.targetString.length;
 
         const liHTML = hitList && hitList.reduce((htmlTemplates, title) => {
-            htmlTemplates += `<li class="search-list-word"><span class="target-word">${title.substring(0, targetLength)}</span><span class="rest-word">${title.substring(targetLength)}</span></li>`
+            htmlTemplates += `<li class="${CSS_CLASS.SEARCH_LIST_LI}"><span class="${CSS_CLASS.SEARCH_LIST_TARGET_WORD}">${title.substring(0, targetLength)}</span><span class="${CSS_CLASS.SEARCH_LIST_REST_WORD}">${title.substring(targetLength)}</span></li>`
             return htmlTemplates;
         }, "");
         this.render(liHTML);
     }
 
     initializeHTML() {
-        $('.hitlist-wrapper').style.display = "block";
-        $('.hitlist-wrapper').innerHTML = "";
-        $('.hitlist-wrapper').scrollTop = SCROLL_TOP_START;
+        $('.hitlist-wrapper').show().html('').setScrollTop(SCROLL.TOP_START);
     }
 
     render(liHTML) {
         this.initializeHTML();
 
         if (!liHTML) {
-            $('.hitlist-wrapper').insertAdjacentHTML("beforeend", `<ul class="search-list-words"><li class="search-list-word">No Results Matched</li></ul>`);
+            $('.hitlist-wrapper').insertAdjacentHTML("beforeend", `<ul class="${CSS_CLASS.SEARCH_LIST_UL}"><li class="${CSS_CLASS.SEARCH_LIST_LI}">No Results Matched</li></ul>`);
             return;
         }
-        const searchListHTML = `<ul class="search-list-words">${liHTML}</ul>`;
+        const searchListHTML = `<ul class="${CSS_CLASS.SEARCH_LIST_UL}">${liHTML}</ul>`;
         $('.hitlist-wrapper').insertAdjacentHTML("beforeend", searchListHTML);
     }
 }
